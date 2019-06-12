@@ -122,16 +122,16 @@ function toTerminalClusterRoleBindingResource ({ name, saName, saNamespace, user
   return toClusterRoleBindingResource({ name, roleRef, subjects, annotations, ownerReferences })
 }
 
-function toTerminalPodResource ({ name, username, target, kubecfgCtxNamespaceTargetCluster, terminalImage, ownerReferences, kubeconfigSecretName }) {
-  const annotations = {}
-  _.assign(annotations, getAnnotationTerminalUserAndTarget({ username, target, kubecfgCtxNamespaceTargetCluster }))
-
-  const labels = {
+function getPodLabels (target) {
+  let labels = {
     'networking.gardener.cloud/to-dns': 'allowed',
     'networking.gardener.cloud/to-public-networks': 'allowed',
     'networking.gardener.cloud/to-private-networks': 'allowed'
   }
   switch (target) {
+    case 'garden':
+      labels = {} // no network restrictions for now
+      break
     case 'cp':
       labels['networking.gardener.cloud/to-seed-apiserver'] = 'allowed'
       break
@@ -140,6 +140,14 @@ function toTerminalPodResource ({ name, username, target, kubecfgCtxNamespaceTar
       labels['networking.gardener.cloud/to-shoot-networks'] = 'allowed'
       break
   }
+  return labels
+}
+
+function toTerminalPodResource ({ name, username, target, kubecfgCtxNamespaceTargetCluster, terminalImage, ownerReferences, kubeconfigSecretName }) {
+  const annotations = {}
+  _.assign(annotations, getAnnotationTerminalUserAndTarget({ username, target, kubecfgCtxNamespaceTargetCluster }))
+
+  const labels = getPodLabels(target)
 
   const spec = {
     containers: [
