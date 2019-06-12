@@ -126,6 +126,21 @@ function toTerminalPodResource ({ name, username, target, kubecfgCtxNamespaceTar
   const annotations = {}
   _.assign(annotations, getAnnotationTerminalUserAndTarget({ username, target, kubecfgCtxNamespaceTargetCluster }))
 
+  const labels = {
+    'networking.gardener.cloud/to-dns': 'allowed',
+    'networking.gardener.cloud/to-public-networks': 'allowed',
+    'networking.gardener.cloud/to-private-networks': 'allowed'
+  }
+  switch (target) {
+    case 'cp':
+      labels['networking.gardener.cloud/to-seed-apiserver'] = 'allowed'
+      break
+    case 'shoot':
+      labels['networking.gardener.cloud/to-shoot-apiserver'] = 'allowed'
+      labels['networking.gardener.cloud/to-shoot-networks'] = 'allowed'
+      break
+  }
+
   const spec = {
     containers: [
       {
@@ -160,7 +175,7 @@ function toTerminalPodResource ({ name, username, target, kubecfgCtxNamespaceTar
       }
     ]
   }
-  return toPodResource({ name, annotations, spec, ownerReferences })
+  return toPodResource({ name, labels, annotations, spec, ownerReferences })
 }
 
 async function initializeSeedTerminalObject ({ user, seed, scheduleNamespace }) {
